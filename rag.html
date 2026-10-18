@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Simulator | Mission Control</title>
+<style>
+:root{
+  --bg:#030912;--panel:#061525;--panel2:#081d32;--line:#16456b;--blue:#26a7ff;
+  --blue2:#78d4ff;--text:#edf6ff;--muted:#a5bdd2;--green:#29e0a1;--amber:#ffcb70;
+  --red:#ff647c;--purple:#b39aff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 50% -20%,#12365a 0%,#061321 38%,var(--bg) 75%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.23;background-image:radial-gradient(#8bcfff 1px,transparent 1px);background-size:37px 37px;mask-image:linear-gradient(to bottom,black,transparent 72%)}
+header{position:relative;overflow:hidden;padding:22px clamp(18px,4vw,56px) 18px;border-bottom:1px solid #1d5682;background:linear-gradient(90deg,rgba(3,9,18,.96),rgba(5,20,37,.86))}
+header:after{content:"";position:absolute;right:-5%;bottom:-66px;width:48%;height:130px;border-radius:50%;border-top:2px solid #5cc7ff;box-shadow:0 -8px 28px #1678d7;transform:rotate(-5deg);opacity:.65}
+.topline{display:flex;align-items:center;gap:22px;position:relative;z-index:1;flex-wrap:wrap}
+.brand{font-weight:900;letter-spacing:.24em;font-size:clamp(19px,2vw,28px);font-style:italic}
+.separator{height:30px;width:1px;background:#6586a1}
+h1{font-size:clamp(19px,2.2vw,30px);letter-spacing:.14em;margin:0;font-weight:750}
+.tagline{margin-top:10px;color:var(--muted);letter-spacing:.25em;font-size:11px;text-transform:uppercase;position:relative;z-index:1}
+.tagline span{color:var(--blue2);margin:0 9px}
+.wrap{max-width:1600px;margin:auto;padding:22px clamp(14px,2.5vw,36px) 30px;position:relative}
+.section-kicker{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#d4e8fa;margin:0 0 10px}
+.pipeline{display:grid;grid-template-columns:repeat(6,minmax(145px,1fr));gap:10px;margin-bottom:18px}
+.stage{position:relative;min-height:185px;padding:14px 13px;border:1px solid #164a75;border-radius:13px;background:linear-gradient(145deg,rgba(8,29,50,.96),rgba(2,13,25,.96));overflow:hidden}
+.stage:before{content:"";position:absolute;inset:0 auto 0 0;width:2px;background:linear-gradient(transparent,var(--blue),transparent);opacity:.7}
+.stage.active{border-color:var(--blue);box-shadow:0 0 22px #138de32c}
+.stage.done{border-color:#1b8f79}
+.stage-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.num{width:27px;height:27px;flex:0 0 27px;border-radius:50%;display:grid;place-items:center;background:#155b91;color:white;font-weight:800;font-size:13px}
+.stage h3{font-size:11px;letter-spacing:.08em;margin:0;text-transform:uppercase}
+.stage p{font-size:11px;color:#b8cfe2;margin:0 0 10px}
+.mini{height:54px;display:flex;align-items:center;justify-content:center;gap:5px;color:var(--blue2);font-size:10px}
+.doc-stack{width:37px;height:44px;border:1px solid #6bcaff;border-radius:3px;position:relative;background:linear-gradient(140deg,#12375b,#071a2b)}
+.doc-stack:before,.doc-stack:after{content:"";position:absolute;inset:4px -5px -4px 5px;border:1px solid #326f9d;background:#0a2138;z-index:-1}
+.doc-stack:after{inset:8px -9px -8px 9px;opacity:.5}
+.chunk{border:1px solid #2386c6;background:#0c2943;border-radius:4px;padding:4px 6px}
+.db{width:49px;height:46px;border:1px solid #4bbaff;border-radius:50%/15%;background:linear-gradient(90deg,#092d50,#14629a,#09213a);box-shadow:0 0 16px #0e91ff55}
+.query-icon{border:1px solid #2484bf;border-radius:7px;padding:6px 9px;color:#d7efff}
+.rankbar{width:70%;height:11px;border-radius:4px;background:#102c46;border:1px solid #23577d;margin:3px}
+.rankbar:first-child{background:#075d4b;border-color:#1acb9a}
+.brain{font-size:30px;color:var(--blue2);text-shadow:0 0 15px #24a8ff}
+.main-grid{display:grid;grid-template-columns:1.02fr .98fr 1fr;gap:14px;align-items:stretch}
+.panel{border:1px solid #18517c;border-radius:14px;background:linear-gradient(150deg,rgba(6,24,42,.98),rgba(2,13,25,.98));padding:16px;min-width:0;box-shadow:0 10px 30px #0002}
+.panel-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.panel-title h2{font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin:0}
+.panel-sub{color:var(--muted);font-size:11px;margin:0 0 13px}
+.btn{cursor:pointer;border:1px solid #268bd0;background:linear-gradient(110deg,#0b4d81,#0879c9);color:white;border-radius:8px;padding:9px 12px;font-weight:750;font-size:11px;letter-spacing:.04em;transition:.2s}
+.btn:hover{filter:brightness(1.2);box-shadow:0 0 18px #149cff45}
+.btn.secondary{background:#071b2e;border-color:#2b6388;color:#d8eeff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.doc-list{display:flex;flex-direction:column;gap:8px}
+.doc-card{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid #164367;border-radius:9px;background:#061a2c;cursor:pointer;transition:.2s}
+.doc-card:hover{border-color:#2e8fc9}
+.doc-card.selected{border-color:#1b9fff;background:linear-gradient(110deg,#092746,#06182a);box-shadow:inset 0 0 0 1px #168ce944}
+.doc-card input{accent-color:#18a6ff;margin-top:4px}
+.doc-icon{width:31px;height:35px;flex:0 0 31px;display:grid;place-items:center;border-radius:7px;background:#123d62;color:#8ddaff;font-size:17px}
+.doc-meta{flex:1;min-width:0}
+.doc-name{font-size:11px;font-weight:750;margin-bottom:2px}
+.doc-desc{font-size:10px;color:#abc5d9}
+.doc-foot{display:flex;justify-content:space-between;gap:6px;margin-top:5px;color:#7ea5c3;font-size:9px}
+.pill{font-size:9px;color:#68f0bd;background:#063d35;padding:3px 6px;border-radius:20px;white-space:nowrap}
+.small-note{font-size:10px;color:#86a9c4;margin-top:10px}
+label{display:block;font-size:10px;color:#a9c8df;letter-spacing:.1em;text-transform:uppercase;margin:10px 0 6px}
+input[type=text],textarea{width:100%;border:1px solid #22628d;border-radius:8px;background:#020d18;color:#f2f9ff;padding:11px 12px;font:inherit;font-size:12px;outline:none}
+input[type=text]:focus,textarea:focus{border-color:#37b6ff;box-shadow:0 0 0 3px #129cff1b}
+textarea{resize:vertical;min-height:66px}
+.runrow{display:flex;justify-content:flex-end;margin-top:8px}
+.process{border:1px solid #16466a;border-radius:10px;padding:12px;margin-top:13px;background:#031321}
+.process-title{font-size:10px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 10px}
+.step{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:start;padding:8px 0;position:relative}
+.step:not(:last-child):after{content:"";position:absolute;left:10px;top:31px;bottom:-7px;width:1px;background:#1a526f}
+.status{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#173650;color:#789bb4;font-size:11px;border:1px solid #285575;z-index:1}
+.step.done .status{background:#0a6b53;color:#c5fff0;border-color:#19c99a}
+.step.running .status{border-color:#40b9ff;color:#75d2ff;animation:pulse 1s infinite}
+.step-name{font-size:11px;font-weight:700}
+.step-desc{font-size:10px;color:#8eb1cb;margin-top:2px}
+.step-time{font-size:9px;color:#83abc8;white-space:nowrap}
+@keyframes pulse{50%{box-shadow:0 0 0 5px #25a8ff22}}
+.progress{height:4px;background:#0a263c;border-radius:8px;overflow:hidden;margin-top:8px}
+.progress span{display:block;width:0;height:100%;background:linear-gradient(90deg,#087ed0,#4de1ff);transition:width .4s}
+.status-line{font-size:10px;color:#91b2cb;margin-top:9px;min-height:15px}
+.answer-box{border:1px solid #1b5279;border-radius:10px;background:linear-gradient(140deg,#071d31,#04111f);padding:13px}
+.answer-head{display:flex;align-items:center;gap:8px;font-weight:800;font-size:12px;margin-bottom:8px}
+.spark{color:#4ac7ff;font-size:20px}
+.answer-text{font-size:12px;color:#d8eafa;white-space:pre-wrap}
+.empty{font-size:11px;color:#789bb5;padding:18px 6px;text-align:center;border:1px dashed #1a4969;border-radius:8px}
+.sources{margin-top:13px}
+.sources h3{font-size:10px;letter-spacing:.13em;text-transform:uppercase;margin:0 0 8px;color:#b7d7ed}
+.source-item{display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #12334d;padding:8px 0;font-size:10px}
+.source-item:last-child{border-bottom:0}
+.source-rank{width:19px;height:19px;border-radius:5px;display:grid;place-items:center;background:#103c5c;color:#92d9ff;flex:0 0 19px;font-weight:800}
+.source-item b{display:block;font-weight:700;color:#d8edfc}
+.source-item small{color:#8caec7;display:block;margin-top:2px}
+.score{margin-left:auto;color:#4fe1b5;white-space:nowrap}
+.similarity{margin-top:12px}
+.similarity h3{font-size:10px;text-transform:uppercase;letter-spacing:.13em;margin:0 0 7px}
+.match{margin:8px 0}
+.match-top{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:#b8d0e3;margin-bottom:4px}
+.bar{height:5px;background:#0d2a40;border-radius:9px;overflow:hidden}
+.bar span{display:block;height:100%;background:linear-gradient(90deg,#087bd0,#4dd7ff)}
+footer{border-top:1px solid #164469;padding:15px clamp(18px,4vw,56px);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#7294af;font-size:9px;letter-spacing:.2em;text-transform:uppercase}
+footer b{color:#cdeaff;letter-spacing:.28em}
+@media(max-width:1100px){.pipeline{grid-template-columns:repeat(3,minmax(0,1fr))}.main-grid{grid-template-columns:1fr 1fr}.results-panel{grid-column:1/-1}}
+@media(max-width:700px){.pipeline{grid-template-columns:repeat(2,minmax(0,1fr))}.main-grid{grid-template-columns:1fr}.results-panel{grid-column:auto}.stage{min-height:170px}.separator{display:none}.topline{gap:12px}}
+@media(max-width:420px){.pipeline{grid-template-columns:1fr}.stage{min-height:auto}.mini{height:40px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="topline"><div class="brand">ORBITAL</div><div class="separator"></div><h1>RAG SIMULATOR</h1></div>
+  <div class="tagline">RETRIEVAL <span>+</span> AUGMENTATION <span>+</span> GENERATION &nbsp; · &nbsp; BETTER CONTEXT. BETTER ANSWERS.</div>
+</header>
+<main class="wrap">
+  <p class="section-kicker">01 / Flight plan — how RAG works</p>
+  <section class="pipeline" aria-label="RAG workflow stages">
+    <article class="stage" data-stage="0"><div class="stage-head"><div class="num">1</div><h3>Knowledge sources</h3></div><p>Documents, web pages, articles and more.</p><div class="mini"><div class="doc-stack"></div><span>＋</span><div>PDF<br>WEB<br>DOCS</div></div><p>Examples: PDFs, blogs, internal docs</p></article>
+    <article class="stage" data-stage="1"><div class="stage-head"><div class="num">2</div><h3>Chunk & embed</h3></div><p>Split text into chunks and convert each to a vector.</p><div class="mini"><div class="doc-stack"></div><span>→</span><div><div class="chunk">Chunk 1</div><div class="chunk">Chunk 2</div><div class="chunk">Chunk 3</div></div></div><p>Text → chunks → vectors</p></article>
+    <article class="stage" data-stage="2"><div class="stage-head"><div class="num">3</div><h3>Vector database</h3></div><p>Store vectors alongside text and metadata.</p><div class="mini"><div class="db"></div><span>→</span><div>● Chunk 1<br>● Chunk 2<br>● Chunk 3</div></div><p>Enables similarity search</p></article>
+    <article class="stage" data-stage="3"><div class="stage-head"><div class="num">4</div><h3>Query & retrieve</h3></div><p>Represent the question and find candidate chunks.</p><div class="mini"><div class="query-icon">⌕ Query</div><span>→</span><div class="chunk">Top matches</div></div><p>Vector, keyword, or hybrid search</p></article>
+    <article class="stage" data-stage="4"><div class="stage-head"><div class="num">5</div><h3>Rerank (optional)</h3></div><p>Reorder candidates by relevance to the query.</p><div class="mini" style="display:block;padding-left:15%"><div class="rankbar"></div><div class="rankbar"></div><div class="rankbar"></div></div><p>Improves ordering; not a guarantee</p></article>
+    <article class="stage" data-stage="5"><div class="stage-head"><div class="num">6</div><h3>LLM generation</h3></div><p>Use selected chunks as context to draft an answer.</p><div class="mini"><div class="brain">◉</div><span>→</span><div class="chunk">Answer + sources</div></div><p>Grounded response, not guaranteed truth</p></article>
+  </section>
+
+  <section class="main-grid">
+    <section class="panel">
+      <div class="panel-title"><h2>02 / Knowledge bay</h2><button class="btn secondary" id="addDocs">＋ Sample docs</button></div>
+      <p class="panel-sub">Choose the documents that have been indexed into the knowledge base.</p>
+      <div class="doc-list" id="docList"></div>
+      <p class="small-note">The demo uses sample text and simulated embeddings. Real systems use an embedding model and a vector database.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title"><h2>03 / Mission query</h2></div>
+      <p class="panel-sub">Ask a question. Watch retrieval, reranking, and generation happen step by step.</p>
+      <label for="query">Your question</label>
+      <textarea id="query" placeholder="e.g. What are the security risks of AI agents?">What are the security risks of AI agents?</textarea>
+      <div class="runrow"><button class="btn" id="runBtn">▶ RUN RAG</button></div>
+      <div class="process">
+        <h3 class="process-title">Pipeline telemetry</h3>
+        <div id="steps">
+          <div class="step" data-step="0"><div class="status">1</div><div><div class="step-name">Convert query to embedding</div><div class="step-desc">Represent the question numerically</div></div><div class="step-time">—</div></div>
+          <div class="step" data-step="1"><div class="status">2</div><div><div class="step-name">Search vector database</div><div class="step-desc">Find candidate chunks</div></div><div class="step-time">—</div></div>
+          <div class="step" data-step="2"><div class="status">3</div><div><div class="step-name">Rerank results</div><div class="step-desc">Select the most relevant chunks</div></div><div class="step-time">—</div></div>
+          <div class="step" data-step="3"><div class="status">4</div><div><div class="step-name">Generate answer (LLM)</div><div class="step-desc">Use selected chunks as context</div></div><div class="step-time">—</div></div>
+        </div>
+        <div class="progress"><span id="progressBar"></span></div>
+        <div class="status-line" id="statusLine">Ready for launch. Select documents and run a query.</div>
+      </div>
+      <div class="similarity" id="matches"></div>
+    </section>
+
+    <section class="panel results-panel">
+      <div class="panel-title"><h2>04 / Mission results</h2><span class="pill" id="resultStatus">AWAITING QUERY</span></div>
+      <p class="panel-sub">The answer is generated from retrieved sample chunks, with source references.</p>
+      <div class="answer-box"><div class="answer-head"><span class="spark">✦</span> Answer from retrieved context</div><div class="answer-text" id="answerText">Run a query to see how retrieved context influences the final answer.</div></div>
+      <div class="sources"><h3>↗ Source chunks</h3><div id="sourceList" class="empty">Sources will appear here after retrieval.</div></div>
+    </section>
+  </section>
+</main>
+<footer><b>ORBITAL / RAG LAB</b><span>SIMULATED ENVIRONMENT · NOT A PRODUCTION RAG SYSTEM</span><span>KNOWLEDGE IN. CONTEXT OUT.</span></footer>
+
+<script>
+const docs = [
+ {id:"security",icon:"▤",name:"AI Agents Security Overview",desc:"Risks and defensive practices for AI agents.",chunks:[
+  "Prompt injection: malicious instructions in user content or retrieved webpages can manipulate an agent into ignoring its intended rules.",
+  "Data leakage can happen when an agent exposes secrets or sensitive information from connected systems, logs, or retrieved documents.",
+  "Excessive permissions and weak access controls may let an agent access data or perform actions beyond what a user intended.",
+  "Tool misuse: an agent can call external tools in unsafe ways. Apply least privilege, approvals for sensitive actions, and monitoring."
+ ]},
+ {id:"llm",icon:"▣",name:"LLM Best Practices",desc:"Guidelines for using language models safely.",chunks:[
+  "Ground answers in trusted context, distinguish evidence from assumptions, and say when the available information is insufficient.",
+  "Evaluate model outputs with representative tests. Retrieval quality, context quality, and prompt design all affect answer quality.",
+  "Protect private data, validate model outputs, and use human review for high-impact decisions."
+ ]},
+ {id:"vectors",icon:"◉",name:"Vector Databases Explained",desc:"Embeddings, similarity search and retrieval.",chunks:[
+  "An embedding is a numerical vector representing semantic features of text. Similar meanings often map to nearby vectors.",
+  "A vector database stores embeddings and can return nearby vectors for a query embedding. Metadata filters can narrow the search.",
+  "Vector similarity is not the same as factual correctness. Retrieval can miss useful passages or return semantically similar but irrelevant text."
+ ]},
+ {id:"rag",icon:"↗",name:"RAG Use Cases",desc:"Practical applications of retrieval-augmented generation.",chunks:[
+  "Retrieval-augmented generation finds relevant external information and provides it to an LLM as context before answer generation.",
+  "RAG is useful for question answering over changing or private knowledge sources without retraining the language model for every update.",
+  "A common RAG flow is ingest documents, split into chunks, embed and index them, retrieve candidates, optionally rerank, then generate an answer."
+ ]},
+ {id:"architecture",icon:"▤",name:"AI Agent Architecture",desc:"Components and design patterns for AI agents.",chunks:[
+  "AI agents may plan tasks, use tools, keep state, and observe results. Each tool integration can introduce a security boundary.",
+  "Use scoped credentials, audit logs, human confirmation for irreversible actions, and limits on tool access.",
+  "An agent can use RAG to retrieve relevant knowledge, but retrieval is separate from planning and tool execution."
+ ]}
+];
+const extraDocs = [
+ {id:"evaluation",icon:"◇",name:"RAG Evaluation Playbook",desc:"Measure retrieval and answer quality.",chunks:[
+  "Recall at k measures whether relevant source chunks appear among the top k retrieved results.",
+  "Faithfulness checks whether an answer is supported by the supplied context. A fluent answer can still contain unsupported claims.",
+  "Evaluate retrieval and generation separately: relevant chunks do not guarantee a correct answer, and good generation cannot reliably fix missing evidence."
+ ]},
+ {id:"chunking",icon:"▥",name:"Chunking Strategies",desc:"How documents are split for retrieval.",chunks:[
+  "Chunking divides long documents into smaller passages so retrieval can select relevant portions rather than the whole document.",
+  "Very small chunks may lose context; very large chunks can contain distracting information. Chunk size and overlap should be tested.",
+  "Preserve headings, source metadata, and document relationships when chunking so retrieved passages remain interpretable."
+ ]}
+];
+const selected = new Set(["security","llm","vectors","rag","architecture"]);
+const $ = s => document.querySelector(s);
+function renderDocs(){
+ $("#docList").innerHTML = docs.map(d=>`<label class="doc-card ${selected.has(d.id)?"selected":""}" style="text-transform:none;letter-spacing:0;margin:0">
+ <input type="checkbox" data-doc="${d.id}" ${selected.has(d.id)?"checked":""} aria-label="Index ${d.name}">
+ <div class="doc-icon">${d.icon}</div><div class="doc-meta"><div class="doc-name">${d.name}</div><div class="doc-desc">${d.desc}</div><div class="doc-foot"><span>${d.chunks.length} chunks</span><span class="pill">INDEXED</span></div></div></label>`).join("");
+ document.querySelectorAll("[data-doc]").forEach(cb=>cb.addEventListener("change",e=>{
+   const id=e.target.dataset.doc; e.target.checked?selected.add(id):selected.delete(id);renderDocs();
+ }));
+}
+renderDocs();
+$("#addDocs").addEventListener("click",()=>{
+ let added=0;
+ extraDocs.forEach(d=>{if(!docs.some(x=>x.id===d.id)){docs.push(d);selected.add(d.id);added++}});
+ renderDocs();$("#statusLine").textContent=added?`Added ${added} sample document(s) to the indexed knowledge base.`:"All sample documents are already available.";
+});
+function tokens(s){return (s.toLowerCase().match(/[a-z0-9]+/g)||[]).filter(w=>w.length>2&&!["the","and","for","with","from","that","this","are","what","how","can","into","you","your","use","using","about"].includes(w))}
+function scoreChunk(query,text){
+ const q=tokens(query), t=tokens(text); if(!q.length||!t.length)return 0;
+ const unique=[...new Set(q)], overlap=unique.filter(w=>t.includes(w)).length;
+ const phrase=unique.filter(w=>t.some(x=>x.startsWith(w)||w.startsWith(x))).length;
+ const coverage=overlap/unique.length, density=overlap/Math.sqrt(t.length);
+ return Math.min(.98,coverage*.68+Math.min(.25,density*.20)+((phrase-overlap)/unique.length)*.12);
+}
+function getChunks(query){
+ return docs.filter(d=>selected.has(d.id)).flatMap(d=>d.chunks.map((text,i)=>({doc:d,idx:i+1,text,score:scoreChunk(query,text)})))
+ .sort((a,b)=>b.score-a.score);
+}
+function setStep(i,state,desc,time){
+ const el=document.querySelector(`[data-step="${i}"]`);el.className="step "+state;
+ el.querySelector(".status").textContent=state==="done"?"✓":state==="running"?"…":String(i+1);
+ if(desc)el.querySelector(".step-desc").textContent=desc;
+ el.querySelector(".step-time").textContent=time||"—";
+}
+function resetSteps(){
+ ["Convert query to embedding","Search vector database","Rerank results","Generate answer (LLM)"].forEach((_,i)=>setStep(i,"",""+["Represent the question numerically","Find candidate chunks","Select the most relevant chunks","Use selected chunks as context"][i],"—"));
+ document.querySelectorAll(".stage").forEach(s=>s.classList.remove("active","done"));
+ $("#progressBar").style.width="0%";$("#matches").innerHTML="";
+}
+function renderMatches(results){
+ $("#matches").innerHTML=`<h3>Retrieval candidates <span style="color:#83abc8;font-weight:400">(before final answer)</span></h3>`+
+ (results.length?results.slice(0,5).map((r,i)=>`<div class="match"><div class="match-top"><span>${i+1}. ${r.doc.name} · Chunk ${r.idx}</span><span>${Math.round(r.score*100)}% match</span></div><div class="bar"><span style="width:${Math.round(r.score*100)}%"></span></div></div>`).join(""):'<div class="empty">No selected documents to search.</div>');
+}
+function makeAnswer(query,results){
+ if(!selected.size)return "No documents are selected. Select at least one indexed document, then run RAG again.";
+ const useful=results.filter(r=>r.score>0.025).slice(0,3);
+ if(!useful.length)return `I couldn't find a sufficiently relevant passage in the selected knowledge base to answer: “${query}”\n\nA well-designed RAG system should acknowledge this gap instead of confidently inventing an answer. Try a question about AI agent security, embeddings, vector databases, or RAG.`;
+ let intro="Based on the retrieved context, here are the most relevant findings:\n\n";
+ let bullets=useful.map((r,i)=>`${i+1}. ${r.text} [${i+1}]`).join("\n\n");
+ const caveat="\n\nThis answer is limited to the selected sample documents. Retrieval relevance is only a signal—not proof that a statement is correct or complete.";
+ return intro+bullets+caveat;
+}
+let runId=0;
+async function runRag(){
+ const id=++runId, query=$("#query").value.trim();
+ if(!query){$("#statusLine").textContent="Enter a question before running RAG.";$("#query").focus();return}
+ resetSteps();$("#runBtn").disabled=true;$("#resultStatus").textContent="PROCESSING";$("#answerText").textContent="Retrieving evidence and preparing an answer…";$("#sourceList").className="empty";$("#sourceList").textContent="Waiting for retrieved chunks.";
+ const stages=[0,1,2,3,4,5]; stages.forEach(s=>document.querySelector(`[data-stage="${s}"]`).classList.remove("active","done"));
+ const timings=["0.1s","0.3s","0.2s","0.6s"];
+ const descriptions=[
+  "Query represented as a simulated vector.",
+  "Searched indexed chunks using keyword/semantic-like overlap.",
+  "Sorted candidates by a relevance score (simulated reranking).",
+  "Answer assembled from the selected source passages."
+ ];
+ const results=getChunks(query);
+ const tasks=[
+  async()=>{document.querySelector('[data-stage="3"]').classList.add("active");await delay(500);},
+  async()=>{document.querySelector('[data-stage="1"]').classList.add("done");document.querySelector('[data-stage="2"]').classList.add("done");await delay(650);},
+  async()=>{document.querySelector('[data-stage="4"]').classList.add("active");await delay(500);},
+  async()=>{document.querySelector('[data-stage="5"]').classList.add("active");await delay(650);}
+ ];
+ for(let i=0;i<4;i++){
+  if(id!==runId)return;
+  setStep(i,"running",["Converting query into a vector representation…","Searching the selected document chunks…","Scoring and ordering retrieved candidates…","Generating a response from retrieved context…"][i]);
+  $("#statusLine").textContent=["Step 1 of 4 · Query embedding","Step 2 of 4 · Vector retrieval","Step 3 of 4 · Optional reranking","Step 4 of 4 · Answer generation"][i];
+  $("#progressBar").style.width=((i)/4*100)+"%";
+  await tasks[i]();
+  if(id!==runId)return;
+  setStep(i,"done",descriptions[i],timings[i]);$("#progressBar").style.width=((i+1)/4*100)+"%";
+  if(i===1)renderMatches(results);
+ }
+ if(id!==runId)return;
+ stages.forEach(s=>document.querySelector(`[data-stage="${s}"]`).classList.add("done"));
+ $("#answerText").textContent=makeAnswer(query,results);
+ const used=results.filter(r=>r.score>0.025).slice(0,3);
+ $("#sourceList").className=used.length?"":"empty";
+ $("#sourceList").innerHTML=used.length?used.map((r,i)=>`<div class="source-item"><div class="source-rank">${i+1}</div><div><b>${r.doc.name}</b><small>Chunk ${r.idx} · “${r.text}”</small></div><span class="score">${Math.round(r.score*100)}%</span></div>`).join(""):"No relevant chunks found in selected documents.";
+ $("#resultStatus").textContent=used.length?"MISSION COMPLETE":"NO STRONG MATCH";
+ $("#statusLine").textContent=used.length?`RAG run complete. ${used.length} source chunk(s) were used. Scores are illustrative, not real embedding similarity.`:"No relevant evidence found. Try rephrasing or selecting more documents.";
+ $("#runBtn").disabled=false;
+}
+function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+$("#runBtn").addEventListener("click",runRag);
+$("#query").addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter")runRag()});
+</script>
+</body>
+</html>
